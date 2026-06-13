@@ -1,15 +1,18 @@
 # Day 1 — Azure CLI: resource groups
 
 ## Cheat sheet
-​```bash
-az account show --output table #displays current sub
-az group create -n azure-secure-workload-rg -l westeurope #creates a group
-az group show -n azure-secure-workload-rg  #shows detail about group
-az group list -o table #lists all groups in table format
-az group delete -n azure-secure-workload-rg  #deletes group
-az group update -n azure-secure-workload-rg --tags key=value
-az group update -n azure-secure-workload-rg --set tags.key=value
-​```
+````markdown
+## Cheat sheet
+```bash
+az account show -o table                                  # current subscription
+az group create -n azure-secure-workload-rg -l westeurope # create
+az group show -n azure-secure-workload-rg                 # show details
+az group list -o table                                    # list all (table)
+az group delete -n azure-secure-workload-rg               # delete
+az group update -n azure-secure-workload-rg --tags k=v    # REPLACE all tags
+az group update -n azure-secure-workload-rg --set tags.k=v # ADD/merge one tag
+```
+````
 
 ## Notes
 Command anatomy: `az <group> <subgroup> <command> --<param> <value>`
