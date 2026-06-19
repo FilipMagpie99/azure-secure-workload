@@ -26,7 +26,7 @@ az webapp connection create postgres-flexible \
 ## Notes
 - Before creating webapp, a appservice plan must be created.
 - az webbapp identity assigns, adds identity to webapp (returns service principal ID)
-- Service Connector completes multiple tasks in the background - sets microsoft entra auth for the db server if not enabled, set the MS entra admin to the current signed-in user, adds db user for the system-assigned managed identity, user-assigned managed identity or service principal. Grants all privileges to the data base name to this user. Set configs names to the resource based on the DB type.
+- Service Connector completes multiple tasks in the background - sets microsoft entra auth for the db server if not enabled, set the MS entra admin to the current signed-in user,  adds db user for the system-assigned managed identity, user-assigned managed identity or service principal. Grants all privileges to the data base name to this user. Set configs names to the resource based on the DB type.
 
 ## 💡 Gotchas
 - User-assigned managed identity can be assigned to multiple resources, outlives the resource
