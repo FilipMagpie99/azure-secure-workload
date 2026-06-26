@@ -6,9 +6,9 @@ terraform {
       version = ">= 4.0.0"
     }
   }
-    backend "azurerm" {
+  backend "azurerm" {
     resource_group_name  = "rg-tfstate"
-    storage_account_name = "sttfstatefilip7123" 
+    storage_account_name = "sttfstatefilip7123"
     container_name       = "tfstate"
     key                  = "practise.terraform.tfstate"
     use_azuread_auth     = true
