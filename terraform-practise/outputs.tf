@@ -1,11 +1,11 @@
 output "vnet_id" {
-  value = azurerm_virtual_network.app_vnet.id
+  value =  module.network.vnet_id
 }
 
 output "frontend_subnet_id" {
-  value = azurerm_subnet.frontend.id
+  value = module.network.frontend_subnet_id
 }
 
 output "nsg_id" {
-  value = azurerm_network_security_group.af-nsg.id
+  value = module.network.nsg_id
 }
