@@ -8,14 +8,24 @@ resource "azurerm_resource_group" "rg" {
 }
 
 module "network" {
-  source = "./modules/network"
-  location = azurerm_resource_group.rg.location
+  source              = "./modules/network"
+  location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 }
 
 module "compute" {
-  source = "./modules/compute"
-  location = azurerm_resource_group.rg.location
+  source              = "./modules/compute"
+  location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  subnet_id_app = module.network.subnet_id_app
+  subnet_id_app       = module.network.subnet_id_app
+  dns_zone_id         = module.dns.dns_zone_id
+  snet_pe_id         = module.network.subnet_id_pe
+}
+
+
+module "dns"{
+  source = "./modules/dns"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  vnet_id             = module.network.vnet_id
 }

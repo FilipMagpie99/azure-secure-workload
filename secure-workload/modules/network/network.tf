@@ -38,6 +38,7 @@ resource "azurerm_subnet" "snet-pe" {
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.vnet-secure-workload.name
   address_prefixes     = ["10.1.4.0/28"]
+  private_endpoint_network_policies = "Enabled"
 }
 
 resource "azurerm_network_security_group" "nsg-app" {
