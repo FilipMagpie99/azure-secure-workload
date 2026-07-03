@@ -9,3 +9,11 @@ variable "resource_group_name" {
 variable "subnet_id_app" {
   type = string
 }
+
+variable "snet_pe_id" {
+  type = string
+}
+
+variable "dns_zone_id"{
+  type = string
+}
