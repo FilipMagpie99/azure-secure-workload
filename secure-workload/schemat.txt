@@ -111,3 +111,36 @@ MODUŁ SIECI (Dzień 2) ── outputy ──┐
 │    [3] frontend→backend 200 przez PE                              │
 │        + Deny z [2] widoczny w AppServiceIPSecAuditLogs  (KQL)    │
 └────────────────────────────────────────────────────────────────────┘
+
+
+FILAR 1                    FILAR 2 (ingress)                 FILAR 3
+  eskalacja uprawnień           odrzucone wejścia na app         naruszenia topologii
+
+ ┌─────────────────────┐      ┌─────────────────────────┐      ┌──────────────────────┐
+ │     Activity log     │      │   Diagnostic settings    │      │    VNet flow logs     │
+ │  (subskrypcja,       │      │   na App Service         │      │  (Network Watcher +   │
+ │   control plane)     │      │                          │      │   Traffic Analytics)  │
+ └──────────┬──────────┘      └────────────┬────────────┘      └──────────┬───────────┘
+            │                              │                              │
+            │  export (diag setting        │  AppServiceIPSecAuditLogs    │  agregacja TA
+            │  na scope subskrypcji)       │  AppServiceHTTPLogs          │  (10/60 min)
+            ▼                              ▼                              ▼
+ ┌─────────────────────────────────────────────────────────────────────────────────────┐
+ │                        Log Analytics workspace  (law-secure-workload)               │
+ │                                                                                     │
+ │   ┌───────────────┐   ┌──────────────────────────┐   ┌────────────────────┐         │
+ │   │ AzureActivity │   │ AppServiceIPSecAuditLogs │   │  NTANetAnalytics   │         │
+ │   │               │   │ AppServiceHTTPLogs       │   │                    │         │
+ │   └───────┬───────┘   └────────────┬─────────────┘   └─────────┬──────────┘         │
+ │           │                        │                           │                    │
+ │           └────────────────────────┼───────────────────────────┘                    │
+ │                                    ▼                                                │
+ │                    ┌──────────────────────────────┐                                 │
+ │                    │  Detekcje KQL (queries/)      │                                 │
+ │                    │  scheduled query alerts       │                                 │
+ │                    │  Sentinel-ready (backlog)     │                                 │
+ │                    └──────────────────────────────┘                                 │
+ └─────────────────────────────────────────────────────────────────────────────────────┘
+
+  ── Filar 2 (tożsamość / Key Vault → AzureDiagnostics) dojdzie w dniu KV,
+     podpinając diag setting do TEGO SAMEGO workspace. Dzień 5 instrumentuje to, co stoi.
