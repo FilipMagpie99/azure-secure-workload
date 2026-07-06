@@ -7,7 +7,7 @@ resource "azurerm_service_plan" "secure-app_service_plan" {
 }
 
 resource "azurerm_linux_web_app" "frontend_secure_workload" {
-  name                                           = "fvt-frontend-secure-workload"
+  name                                           = "fs99-frontend-secure-workload"
   location                                       = var.location
   resource_group_name                            = var.resource_group_name
   service_plan_id                                = azurerm_service_plan.secure-app_service_plan.id
@@ -29,7 +29,7 @@ resource "azurerm_linux_web_app" "frontend_secure_workload" {
 }
 
 resource "azurerm_linux_web_app" "backend_secure_workload" {
-  name                                           = "fvt-backend-secure-workload"
+  name                                           = "fs99-backend-secure-workload"
   location                                       = var.location
   resource_group_name                            = var.resource_group_name
   service_plan_id                                = azurerm_service_plan.secure-app_service_plan.id
