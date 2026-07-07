@@ -31,6 +31,7 @@ resource "azurerm_subnet" "snet-data" {
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.vnet-secure-workload.name
   address_prefixes     = ["10.1.3.0/28"]
+
 }
 
 resource "azurerm_subnet" "snet-pe" {
@@ -73,4 +74,34 @@ resource "azurerm_subnet_network_security_group_association" "snet-app-nsg-assoc
 resource "azurerm_subnet_network_security_group_association" "snet-data-nsg-association" {
   subnet_id                 = azurerm_subnet.snet-data.id
   network_security_group_id = azurerm_network_security_group.nsg-data.id
+}
+
+
+resource "azurerm_storage_account" "secure_workload_network_log_data" {
+  name                      = "workloadnetworkfs2123"
+  resource_group_name       = var.resource_group_name
+  location                  = var.location
+  account_tier              = "Standard"
+  account_replication_type  = "LRS"
+  min_tls_version           = "TLS1_2"
+}
+
+resource "azurerm_network_watcher" "NetworkWatcher_secure_workload" {
+  name                = "NetworkWatcher_secure_workload"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+}
+
+resource "azurerm_network_watcher_flow_log" "azurerm_network_watcher_flow_log_secure_workload" {
+  network_watcher_name = azurerm_network_watcher.NetworkWatcher_secure_workload.name
+  resource_group_name  = var.resource_group_name
+  name                 = "azurerm_network_watcher_flow_log_secure_workload"
+  target_resource_id   = azurerm_virtual_network.vnet-secure-workload.id
+  storage_account_id = azurerm_storage_account.secure_workload_network_log_data.id
+  enabled            = true
+  retention_policy {
+    enabled = true
+    days    = 90
+  }
+
 }

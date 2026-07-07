@@ -1,0 +1,45 @@
+PUBLICZNY INTERNET
+                                          │
+                                          │  connect na <serwer>.database.windows.net
+                                          │  (publiczny DNS → publiczny IP)
+                                          ▼
+                              ┌───────────────────────┐
+                              │   public network       │
+                              │   access = DISABLED    │──────► odmowa  ═══► SYGNAŁ (audit)
+                              └───────────────────────┘
+ ─────────────────────────────────────────────────────────────────────────────────────────
+                                    VNET (split-horizon)
+                                          │
+   ┌──────────────┐                       │  nslookup → 10.x (snet-pe)
+   │  App Service │   MI token (Entra)    ▼
+   │   backend    │──────────────►┌──────────────┐        ┌────────────────────────────┐
+   │  (snet-app,  │   passwordless│      PE      │───────►│   SQL logical server        │
+   │  VNet integ.)│               │  (snet-pe)   │        │   ┌──────────────────────┐  │
+   └──────┬───────┘               └──────────────┘        │   │  DB (serverless,      │  │
+          │                                               │   │  auto-pause)          │  │
+          │  ── AI (Dzień 8+) NIGDY nie ma tej ścieżki ── │   └──────────────────────┘  │
+          │     (Model B: backend = jedyny pośrednik)     │                              │
+          │                                               │   Entra-only auth = ON       │
+          ▼                                               │   SQL auth ═══► nie istnieje │
+   privatelink.database.windows.net                       └──────────────┬───────────────┘
+   (strefa → link → zone group,                                          │
+    3. instancja wzorca z Dnia 4)                                        │  auditing
+                                                                         ▼
+                                                          ┌────────────────────────────┐
+                                                          │  Log Analytics workspace    │
+                                                          │  (tabela auditingu SQL —    │
+                                                          │   nazwę ustal z dokumentacji│
+                                                          │   → filar 2: tożsamość)     │
+                                                          └────────────────────────────┘
+
+ DWIE WARSTWY AUTORYZACJI (rozdziel je w głowie, zanim rozdzielisz w konfiguracji):
+
+   warstwa 1: KTO WCHODZI          warstwa 2: CO MOŻE
+   Entra ID (authn)                role w bazie (authz)
+   ┌─────────────────────┐         ┌──────────────────────────────┐
+   │ admin Entra (ty)     │         │ user z MI backendu:           │
+   │ MI backendu          │  ────►  │   + rola czytania danych      │
+   │ SQL auth: BRAK       │         │   + rola pisania danych       │
+   └─────────────────────┘         │   NIGDY owner                 │
+   zarządza: Terraform             └──────────────────────────────┘
+                                   zarządza: DDL w bazie (NIE Terraform)

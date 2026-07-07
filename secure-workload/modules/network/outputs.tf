@@ -4,6 +4,9 @@ output "subnet_id_app" {
 output "subnet_id_pe" {
   value = azurerm_subnet.snet-pe.id
 }
+output "subnet_id_data" {
+  value = azurerm_subnet.snet-data.id
+}
 output "vnet_id" {
   value = azurerm_virtual_network.vnet-secure-workload.id
 }
