@@ -36,21 +36,21 @@ resource "azurerm_linux_web_app" "backend_secure_workload" {
   virtual_network_subnet_id                      = var.subnet_id_app
   ftp_publish_basic_authentication_enabled       = false
   webdeploy_publish_basic_authentication_enabled = false
-  public_network_access_enabled = true
-  
+  public_network_access_enabled                  = true
+
   site_config {
-    vnet_route_all_enabled  = true
-    ftps_state              = "Disabled"
-    minimum_tls_version     = "1.2"
-    scm_minimum_tls_version = "1.2"
-    http2_enabled           = true
-    ip_restriction_default_action = "Deny"
+    vnet_route_all_enabled            = true
+    ftps_state                        = "Disabled"
+    minimum_tls_version               = "1.2"
+    scm_minimum_tls_version           = "1.2"
+    http2_enabled                     = true
+    ip_restriction_default_action     = "Deny"
     scm_ip_restriction_default_action = "Deny"
-    scm_use_main_ip_restriction = false 
+    scm_use_main_ip_restriction       = false
 
     scm_ip_restriction {
       ip_address = "83.4.215.207/32"
-      name      = "Allow-Dev-IP"
+      name       = "Allow-Dev-IP"
       action     = "Allow"
       priority   = 100
     }
@@ -61,10 +61,10 @@ resource "azurerm_linux_web_app" "backend_secure_workload" {
 }
 
 resource "azurerm_private_endpoint" "secure_workload_pe" {
-  name = "secure-workload-pe"
-  location = var.location
+  name                = "secure-workload-pe"
+  location            = var.location
   resource_group_name = var.resource_group_name
-  subnet_id = var.snet_pe_id
+  subnet_id           = var.snet_pe_id
   private_service_connection {
     name                           = "secure-workload-psc-backend"
     is_manual_connection           = false
@@ -72,7 +72,10 @@ resource "azurerm_private_endpoint" "secure_workload_pe" {
     subresource_names              = ["sites"]
   }
   private_dns_zone_group {
-    name = "secure-workload-dns-zone-group"
+    name                 = "secure-workload-dns-zone-group"
     private_dns_zone_ids = [var.dns_zone_id]
   }
 }
+
+
+

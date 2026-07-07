@@ -22,8 +22,10 @@ module "compute" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   subnet_id_app       = module.network.subnet_id_app
+  subnet_id_data      = module.network.subnet_id_data
   dns_zone_id         = module.dns.dns_zone_id
   snet_pe_id         = module.network.subnet_id_pe
+  dns_zone_id_db = module.dns.dns_zone_id_db
 }
 
 
