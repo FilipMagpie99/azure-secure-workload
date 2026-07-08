@@ -41,8 +41,10 @@ module "visibility" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   subscription_id      = data.azurerm_subscription.current.subscription_id
+  postgres_server_id = module.compute.postgres_server_id
   app_service_ids = {
     frontend = module.compute.frontend_app_service_id
     backend  = module.compute.backend_app_service_id
   }
+ 
 }
