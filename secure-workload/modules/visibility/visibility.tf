@@ -44,3 +44,18 @@ resource "azurerm_monitor_diagnostic_setting" "diag-sub-to-law-secure-workload" 
     category = "Policy"
   }
 } 
+
+
+resource "azurerm_monitor_diagnostic_setting" "diag-postgres-to-law-secure-workload" {
+  name                           = "diag-postgres-to-law-secure-workload"
+  target_resource_id             = var.postgres_server_id 
+  log_analytics_workspace_id     = azurerm_log_analytics_workspace.law_secure_workload.id
+  log_analytics_destination_type = "Dedicated"
+
+  enabled_metric {
+    category = "AllMetrics"
+  }
+  enabled_log {
+    category = "PostgreSQLLogs"
+  }
+} 

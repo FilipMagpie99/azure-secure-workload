@@ -14,3 +14,7 @@ variable "app_service_ids" {
 variable "subscription_id" {
   type = string
 }
+
+variable "postgres_server_id" {
+  type = string
+}
