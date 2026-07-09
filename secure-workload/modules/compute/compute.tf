@@ -20,6 +20,13 @@ resource "azurerm_linux_web_app" "frontend_secure_workload" {
     minimum_tls_version     = "1.2"
     scm_minimum_tls_version = "1.2"
     http2_enabled           = true
+    ip_restriction_default_action     = "Deny" 
+
+    ip_restriction{ 
+      action = "Allow"
+      name = "Allow-AppGW"
+      virtual_network_subnet_id = var.subnet_id_appgw
+    }
   }
 
   identity {

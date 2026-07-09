@@ -43,3 +43,349 @@ PUBLICZNY INTERNET
    └─────────────────────┘         │   NIGDY owner                 │
    zarządza: Terraform             └──────────────────────────────┘
                                    zarządza: DDL w bazie (NIE Terraform)
+
+
+
+                                   ================================================================================
+AZURE-SECURE-WORKLOAD — PLAN POZOSTAŁYCH DNI (7–13)
+Teza projektu: hardening produkuje obserwowalne sygnały.
+Każdy dzień: cel → schemat → zasoby TF → sygnał detekcyjny → ADR → prerekwizyty.
+================================================================================
+
+STAN WYJŚCIOWY (po Dniu 6):
+- VNet + snet-app / snet-pe, App Service (frontend/backend) z VNet integration,
+  vnet_route_all_enabled = true
+- Backend: public_network_access = true + ip_restriction default Deny (Wariant B)
+- Private endpoints: App Service (backend), PostgreSQL Flexible Server
+- Private DNS: privatelink.azurewebsites.net, privatelink.postgres.database.azure.com
+- PostgreSQL: Entra-only auth (passwordless), AD administrator przez azuread provider
+- Log Analytics + diagnostic settings (for_each), VNet flow logs (ślepe w czystym PaaS
+  — kompensacja: AppServiceIPSecAuditLogs)
+- Remote state: SA z shared key disabled, use_azuread_auth, RBAC data-plane
+
+--------------------------------------------------------------------------------
+DZIEŃ 7 — APPLICATION GATEWAY WAF v2 (pierwszy IaaS-owy NIC w VNet)
+--------------------------------------------------------------------------------
+CEL: Warstwa L7 przed frontendem, WAF policy, domknięcie luki "WAF bypass"
+(bezpośrednie wejście na publiczny URL App Service). Od tego dnia VNet flow logi
+przestają być ślepe — App Gateway ma klasyczne NIC-i w subnecie.
+
+SCHEMAT:
+                        Internet
+                           |
+                    [ Public IP std ]
+                           |
+                 +---------------------+
+                 |  App Gateway WAF v2 |   snet-agw (dedykowany, min /24
+                 |  + WAF Policy       |   zalecane przez MS dla v2)
+                 +---------------------+
+                           |
+              HTTP(S) do frontend FQDN
+                           |
+        +------------------+------------------+
+        |            App Service              |
+        |  frontend  -- ip_restriction:       |
+        |             Allow TYLKO snet-agw    |
+        |             (service endpoint /     |
+        |              subnet rule), Deny *   |
+        +------------------+------------------+
+                           |
+                 VNet integration (snet-app)
+                           |
+                  [ PE backend ]  [ PE postgres ]   snet-pe
+
+ZASOBY TF:
+- azurerm_subnet "snet-agw" (bez delegacji; NSG z regułami dla
+  GatewayManager 65200-65535 inbound — inaczej v2 nie wstanie)
+- azurerm_public_ip (Standard, static)
+- azurerm_web_application_firewall_policy (mode: Detection → potem Prevention;
+  OWASP CRS 3.2, custom rules)
+- azurerm_application_gateway (sku WAF_v2, firewall_policy_id, backend pool =
+  FQDN frontendu, probe, HTTP settings z pick_host_name_from_backend_address)
+- Modyfikacja frontendu: ip_restriction → Allow virtual_network_subnet_id
+  = snet-agw, reszta Deny
+
+SYGNAŁ DETEKCYJNY:
+- ApplicationGatewayFirewallLog: WAF matches/bloki (Detection mode = tuning data)
+- ApplicationGatewayAccessLog: pełny L7 access log
+- AppServiceIPSecAuditLogs frontendu: każdy request NIE z snet-agw = próba
+  ominięcia WAF (dotąd ten sygnał chronił tylko backend — teraz obejmuje front)
+- VNet flow logs: pierwszy realny ruch do zaobserwowania (NIC-e AGW)
+
+ADR: WAF_v2 + subnet rule vs Front Door vs czysty PE na froncie.
+Detection-first mode przed Prevention (tuning FP) — sekwencja audit→enforce
+jak w Policy.
+
+POTRZEBNE: dokumentacja wymagań subnetu AGW v2, godzina na debug probe'ów
+(najczęstszy fail: 502 przez zły host header / brak pick_host_name).
+UWAGA KOSZTOWA: WAF_v2 to najdroższy zasób projektu (~250+ USD/mc full-time)
+— apply/destroy per sesja albo minimalne capacity units.
+
+--------------------------------------------------------------------------------
+DZIEŃ 8 — KEY VAULT (RBAC mode, PE, Key Vault references)
+--------------------------------------------------------------------------------
+CEL: Centralny sekret-store. Nawet w architekturze passwordless zostają sekrety
+"nie-tożsamościowe" (klucze API zewnętrznych usług, connection stringi legacy).
+App Service czyta przez Key Vault references + managed identity.
+
+SCHEMAT:
+   App Service (MI system-assigned)
+        |  GET secret (Key Vault reference w app_settings:
+        |  @Microsoft.KeyVault(SecretUri=...))
+        v
+   [ PE kv ] -- snet-pe -- privatelink.vaultcore.azure.net
+        |
+   +------------------------+
+   |  Key Vault             |
+   |  - enable_rbac_auth    |  (NIE access policies)
+   |  - public access OFF   |
+   |  - purge_protection ON |
+   |  - soft_delete 90d     |
+   +------------------------+
+        ^
+   RBAC: "Key Vault Secrets User" dla MI app,
+         "Key Vault Secrets Officer" dla ciebie (deploy-time)
+
+ZASOBY TF:
+- azurerm_key_vault (enable_rbac_authorization = true,
+  public_network_access_enabled = false, purge_protection_enabled = true)
+- azurerm_private_endpoint + azurerm_private_dns_zone (vaultcore) + link + group
+- azurerm_role_assignment x2 (data-plane, scope = KV)
+- azurerm_key_vault_secret — GOTCHA: twój principal potrzebuje roli data-plane
+  ZANIM TF stworzy sekret; propagacja RBAC = transient 403 (znasz z remote state)
+- app_settings z referencją KV na jednej z appek (dowód działania)
+
+SYGNAŁ DETEKCYJNY:
+- Diagnostic setting: AuditEvent → LAW. Każdy SecretGet z tożsamości innej niż
+  MI appki = anomalia. Public access OFF ⇒ każdy hit z publicznego IP w audycie
+  to z definicji naruszenie topologii (analogia do AppServiceIPSecAuditLogs).
+- Activity Log: zmiany role assignments na scope KV (persistence signal,
+  analogia do administrators/write z Dnia 6).
+
+ADR: RBAC vs access policies (access policies = legacy, brak PIM, brak
+granularności per-secret przez RBAC custom scope). Purge protection jako
+ochrona przed anti-forensics (kasowanie sekretów + purge = zacieranie śladów).
+
+POTRZEBNE: nic nowego w toolchainie; 1 sesja. Pułapka: TF apply z public
+access OFF wymaga, żeby TWÓJ runner miał dostęp — na razie lokalny apply
+z twojego IP ⇒ network_acls z ip_rules na twój adres albo chwilowy bypass
+(udokumentuj jako ADR/known-gap do rozwiązania w Dniu 11 przez OIDC runner).
+
+--------------------------------------------------------------------------------
+DZIEŃ 9 — AZURE OPENAI (Model B: backend jako jedyny pośrednik)
+--------------------------------------------------------------------------------
+CEL: Komponent AI z disableLocalAuth=true (zero kluczy API), PE, RBAC dla MI
+backendu. AI nigdy nie dotyka bazy bezpośrednio — całość przez backend.
+
+SCHEMAT:
+   frontend -> backend (MI) --RBAC: Cognitive Services OpenAI User-->
+        |
+        v
+   [ PE openai ] -- snet-pe -- privatelink.openai.azure.com
+        |
+   +---------------------------+
+   |  Azure OpenAI             |
+   |  - disableLocalAuth=true  |  (local_authentication_enabled = false)
+   |  - public access OFF      |
+   |  - content filter +       |
+   |    prompt shields         |
+   +---------------------------+
+
+   ZAKAZ (Model B): OpenAI --X--> PostgreSQL (żadnego grantu db dla AI;
+   dead permissions = audit finding — lekcja z least-privilege)
+
+ZASOBY TF:
+- azurerm_cognitive_account (kind OpenAI, local_authentication_enabled = false,
+  public_network_access_enabled = false, custom_subdomain_name — WYMAGANY dla PE)
+- azurerm_cognitive_deployment (model, np. gpt-4o-mini — najtańszy sensowny)
+- PE + strefa privatelink.openai.azure.com + link + zone group
+- azurerm_role_assignment: MI backendu → "Cognitive Services OpenAI User"
+- Content filter / RAI policy (część przez azapi jeśli azurerm nie pokrywa —
+  sprawdź aktualny stan providera, to ruchomy target)
+
+SYGNAŁ DETEKCYJNY:
+- Diagnostic: Audit + RequestResponse → LAW. disableLocalAuth=true ⇒ każda
+  próba auth kluczem = jednoznaczna anomalia (dokładnie ten sam wzorzec co
+  password-auth-disabled na Postgresie).
+- Prompt shields: zablokowane jailbreaki jako sygnał (nowa klasa detekcji —
+  dobry materiał na rozmowę: "detekcja na warstwie AI").
+- Wolumetria tokenów per tożsamość = baseline do anomalii kosztowych/exfil.
+
+ADR: Model B vs AI-z-dostępem-do-danych (RAG bezpośredni). Powód: minimalizacja
+blast radius, pojedynczy punkt egzekwowania autoryzacji (backend), audytowalny
+przepływ. disableLocalAuth jako eliminacja całej klasy credential-theft.
+
+POTRZEBNE: dostępność Azure OpenAI w regionie (Poland Central może nie mieć
+wszystkich modeli — sprawdź PRZED kodem, fallback: Sweden Central + PE działa
+cross-region); ewentualnie provider azapi w required_providers.
+
+--------------------------------------------------------------------------------
+DZIEŃ 10 — AZURE POLICY (audit → enforce)
+--------------------------------------------------------------------------------
+CEL: Warstwa prewencyjno-detekcyjna na płaszczyźnie control plane. Polityki
+kodyfikują decyzje z Dni 1–9 jako baseline. Sekwencja: najpierw Audit
+(inwentaryzacja naruszeń), potem Deny (egzekucja).
+
+SCHEMAT:
+   Subscription 6d204bd9-...
+        |
+   [ Initiative "secure-workload-baseline" ]  (azurerm_policy_set_definition)
+        |-- Deny: storage accounts z shared key auth
+        |-- Deny: public network access na KV / Postgres / Cognitive
+        |-- Audit: brak diagnostic settings → LAW      (etap 1: WSZYSTKO Audit)
+        |-- Audit: App Service bez HTTPS-only          (etap 2: flip na Deny
+        |-- Deny: basic auth (FTP/SCM) na App Service   po przeglądzie compliance)
+        |
+   assignment scope: RG projektu (nie cała subskrypcja — remote state SA
+   ma shared key disabled, ale nie ryzykuj self-lockoutu na starcie)
+
+ZASOBY TF:
+- azurerm_policy_set_definition (initiative z built-inów; custom definition
+  tylko jeśli built-in nie pokrywa — policzysz to jako ADR)
+- azurerm_subscription_policy_assignment / azurerm_resource_group_policy_assignment
+  (enforcement_mode = "DoNotEnforce" na etapie audit ← to jest natywny
+  mechanizm audit-then-enforce, lepszy niż podmiana effect)
+- Ewentualnie remediation task dla deployIfNotExists (diagnostic settings)
+
+SYGNAŁ DETEKCYJNY:
+- Microsoft.PolicyInsights w Activity Log; compliance state jako continuous
+  compliance signal — DOKŁADNIE twoja teza z Dnia 5: terraform plan łapie drift
+  w zarządzanych atrybutach, Policy łapie drift out-of-band i zasoby spoza TF.
+  Te dwa mechanizmy są komplementarne — to jest rdzeń ADR-a.
+- Deny event = ktoś/coś próbowało złamać baseline (preventive control
+  produkujący sygnał detekcyjny — teza projektu w czystej postaci).
+
+ADR: enforcement_mode vs duplikacja polityk z różnym effect; scope RG vs
+subskrypcja; Policy-as-detection vs Policy-as-prevention.
+
+POTRZEBNE: przegląd built-in definitions (portal albo az policy definition
+list — nie pisz custom, zanim nie sprawdzisz built-inów); pół sesji na
+zrozumienie evaluation cycle (24h + on-write + on-demand trigger).
+
+--------------------------------------------------------------------------------
+DZIEŃ 11 — CI/CD: GITHUB ACTIONS + OIDC (zero sekretów w repo)
+--------------------------------------------------------------------------------
+CEL: Pipeline plan-on-PR / apply-on-main z federacją OIDC (żadnych service
+principal secrets), gate'y shift-left (Checkov/tfsec/gitleaks), deploy appki
+run-from-package przez ARM plane (SCM w ogóle nieużywany — spójne z Wariantem B).
+
+SCHEMAT:
+   GitHub repo (public od ~teraz)
+        |
+   PR:   fmt -> validate -> gitleaks -> checkov/tfsec -> terraform plan (komentarz w PR)
+   main: plan -> manual approval (environment protection) -> apply
+        |
+   OIDC federated credential
+   (issuer: token.actions.githubusercontent.com,
+    subject: repo:FilipMagpie99/azure-secure-workload:environment:prod)
+        |
+        v
+   Entra App Registration / UAMI z federated identity credential
+        |-- RBAC: Contributor na RG projektu (NIE Owner; role assignments
+        |         robisz ręcznie albo osobną tożsamością — ADR)
+        |-- Storage Blob Data Contributor na SA remote state
+        |
+   Deploy appki: az webapp deploy / OneDeploy przez ARM
+   (SCM/Kudu wyłączony scenariusz — basic auth OFF zostaje twardym faktem)
+
+ZASOBY TF (bootstrap tożsamości może być poza TF — chicken-and-egg, ADR):
+- azuread_application + azuread_service_principal (albo UAMI:
+  azurerm_user_assigned_identity + azurerm_federated_identity_credential)
+- azurerm_role_assignment (RG + SA state)
+- Pliki: .github/workflows/{plan.yml, apply.yml}, environment "prod"
+  z required reviewers
+
+SYGNAŁ DETEKCYJNY:
+- Activity Log: apply'e wyłącznie z tożsamości OIDC ⇒ każdy write z TWOJEGO
+  konta po cutoverze = out-of-band change (klasyczny sygnał "ktoś klika
+  w portalu"). To domyka lekcję o driftach.
+- StorageBlobLogs na SA state: dostęp do tfstate spoza pipeline'u = anomalia
+  wysokiej wagi (tfstate zawiera wrażliwe dane).
+- SigninLogs: federated credential używany poza oknami workflow = kradzież
+  tożsamości pipeline'u.
+
+ADR: OIDC vs SP secret (eliminacja klasy credential leakage); subject claim
+per-environment vs per-branch (per-branch = szerszy, łatwiejszy do nadużycia);
+Contributor bez User Access Administrator jako świadome ograniczenie.
+
+POTRZEBNE: repo publiczne albo GitHub Pro (environments protection rules
+na private wymagają płatnego planu — sprawdź aktualnie); gh CLI już masz;
+1–2 sesje (OIDC subject claims to najczęstsze miejsce błędu: literalny
+mismatch stringa = niejasny błąd AADSTS700213).
+
+--------------------------------------------------------------------------------
+DZIEŃ 12 — CAPSTONE DETEKCYJNY: KQL PACK + MAPA KONTROLA→SYGNAŁ
+--------------------------------------------------------------------------------
+CEL: Twój wyróżnik w formie artefaktu. Katalog detections/ w repo: zapytania
+KQL + tabela mapująca każdą kontrolę z Dni 1–11 na sygnał, który produkuje.
+To jest dokument, który pokazujesz na rozmowie.
+
+SCHEMAT (struktura artefaktu, nie topologia):
+   detections/
+   ├── README.md          <- tabela: kontrola | bypass | tabela LAW | zapytanie
+   ├── P1-elevate-access.kql        (masz autentyczny event z bootstrapu!)
+   ├── P1-postgres-admin-write.kql  (administrators/write = persistence)
+   ├── P1-tfstate-access-anomaly.kql (StorageBlobLogs poza pipeline)
+   ├── P2-appservice-ipsec-deny.kql (próby ominięcia PE/WAF)
+   ├── P2-kv-secret-get-anomaly.kql (SecretGet ≠ MI appki)
+   ├── P2-openai-key-auth-attempt.kql (localAuth disabled ⇒ każda próba = alert)
+   ├── P2-waf-blocks-tuning.kql
+   ├── P3-policy-deny-events.kql
+   └── P3-oob-change-detection.kql  (write ≠ tożsamość OIDC)
+
+   Format każdego pliku: hipoteza -> źródło -> zapytanie -> tuning notes ->
+   priorytet (jak reguła w Sentinelu, bo to de facto backlog reguł).
+
+ZASOBY: zero nowego Terraforma (ewentualnie azurerm_sentinel_alert_rule_scheduled
+jeśli zdecydujesz się wdrożyć LAW→Sentinel — osobny ADR: koszt Sentinela
+vs saved queries; na portfolio wystarczą pliki .kql + jedna reguła jako dowód,
+że umiesz je wdrożyć as-code).
+
+POTRZEBNE: wygenerowanie danych testowych (kontrolowane "ataki": curl na
+publiczny URL, próba klucza do OpenAI, login hasłem do Postgresa) — pół sesji
+red-team-owania własnej infry. To też materiał na README.
+
+--------------------------------------------------------------------------------
+DZIEŃ 13 — KONSOLIDACJA: DIAGRAM, ADR INDEX, README, REPO PUBLIC
+--------------------------------------------------------------------------------
+CEL: Repo gotowe do pokazania. Świeże publiczne repo (zgodnie z planem),
+brudnopis zostaje prywatny.
+
+CHECKLIST:
+- [ ] Diagram architektury (final state; Mermaid w README renderuje się
+      na GitHubie — zero dodatkowych narzędzi)
+- [ ] docs/adr/ z indexem (format: rejected alternative / reason / chosen)
+- [ ] README: teza projektu w pierwszym akapicie ("hardening produces
+      observable signals"), link do detections/
+- [ ] notes/ przejrzane — usuń identyfikatory, których nie chcesz publicznie
+      (subscription ID jest w memory/notatkach — NIE commituj; storage account
+      names są globalnie unikalne i publiczne z natury, ale przemyśl)
+- [ ] gitleaks pełny scan historii (git log może zawierać sekrety z brudnopisu
+      — dlatego świeże repo, nie git filter-branch)
+- [ ] terraform-docs dla modułów (opcjonalnie, ładny touch)
+
+POTRZEBNE: 1 sesja porządkowa, zimne oko na README (sesja krytyki notatek).
+
+--------------------------------------------------------------------------------
+RÓWNOLEGLE / PARKING
+--------------------------------------------------------------------------------
+- TYDZIEŃ 4–5: Terraform Associate 004. Cztery tematy poza projektem:
+  lifecycle meta-arguments, custom conditions, ephemeral values / write-only
+  arguments, HCP Terraform workspaces. Projekt pokrywa resztę egzaminu.
+- AZURE SQL: wypadło na rzecz Postgresa. Wraca TYLKO jeśli target job wymaga
+  (banki często SQL Server-heavy) — wtedy jako Dzień 8b, wzorzec identyczny
+  (PE + Entra-only), więc koszt nauki niski.
+- PYTHON: compliance scanner (MI auth → enumeracja → ewaluacja → JSON report)
+  najlepiej PO Dniu 10 — będziesz mieć Policy compliance API jako naturalny
+  cel zapytań.
+- AKS/CKS (stretch v2): nie zaczynaj przed publicznym repo.
+
+KOLEJNOŚĆ MA UZASADNIENIE (dependency chain):
+7 (AGW domyka ingress + odblokowuje flow logs) →
+8 (KV potrzebny zanim cokolwiek będzie mieć sekrety nie-MI) →
+9 (OpenAI konsumuje wzorce PE+RBAC+diagnostic z 7–8) →
+10 (Policy kodyfikuje baseline, który musi najpierw ISTNIEĆ) →
+11 (OIDC rozwiązuje known-gap z Dnia 8: apply bez publicznego dostępu) →
+12 (detekcje wymagają wszystkich źródeł logów) →
+13 (konsolidacja).
+================================================================================

@@ -26,6 +26,7 @@ module "compute" {
   dns_zone_id         = module.dns.dns_zone_id
   snet_pe_id         = module.network.subnet_id_pe
   dns_zone_id_db = module.dns.dns_zone_id_db
+  subnet_id_appgw = module.network.subnet_id_appgw
 }
 
 
