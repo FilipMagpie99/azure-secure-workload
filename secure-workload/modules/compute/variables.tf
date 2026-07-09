@@ -25,3 +25,7 @@ variable "dns_zone_id" {
 variable "dns_zone_id_db" {
   type = string
 }
+
+variable "subnet_id_appgw" {
+  type = string
+}
