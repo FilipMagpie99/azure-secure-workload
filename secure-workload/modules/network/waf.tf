@@ -3,6 +3,7 @@ resource "azurerm_subnet" "snet-appgw" {
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.vnet-secure-workload.name
   address_prefixes     = ["10.1.5.0/24"]
+  service_endpoints = ["Microsoft.Web"]
 }
 
 resource "azurerm_public_ip" "pub_ip_appgw" {
@@ -22,7 +23,7 @@ resource "azurerm_web_application_firewall_policy" "secure_workload_waf_policy" 
 
   # Configure the policy settings
   policy_settings {
-    enabled                                   = false
+    enabled                                   = true
     file_upload_limit_in_mb                   = 100
     js_challenge_cookie_expiration_in_minutes = 5
     max_request_body_size_in_kb               = 128
@@ -39,23 +40,6 @@ resource "azurerm_web_application_firewall_policy" "secure_workload_waf_policy" 
     }
   }
 
-  # Define a custom rule to block traffic from a specific IP address
-#   custom_rules {
-#     name      = "BlockSpecificIP"
-#     priority  = 1
-#     rule_type = "MatchRule"
-
-#     match_conditions {
-#       match_variables {
-#         variable_name = "RemoteAddr"
-#       }
-#       operator           = "IPMatch"
-#       negation_condition = false
-#       match_values       = ["192.168.1.1"] # Replace with the IP address to block
-#     }
-
-#     action = "Block"
-#   }
 }
 
 # Create the Application Gateway

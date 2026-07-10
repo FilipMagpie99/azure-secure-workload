@@ -1,5 +1,5 @@
 resource "azurerm_log_analytics_workspace" "law_secure_workload" {
-  name                = "law-secure-workload"
+  name                = "law-secure-workload-v2"
   resource_group_name = var.resource_group_name
   location            = var.location
   sku                 = "PerGB2018"
@@ -57,5 +57,21 @@ resource "azurerm_monitor_diagnostic_setting" "diag-postgres-to-law-secure-workl
   }
   enabled_log {
     category = "PostgreSQLLogs"
+  }
+} 
+
+
+resource "azurerm_monitor_diagnostic_setting" "diag-appgw-to-law-secure-workload" {
+  name                           = "diag-appgw-to-law-secure-workload"
+  target_resource_id             =  var.secure_workload_appgw_id
+  log_analytics_workspace_id     = azurerm_log_analytics_workspace.law_secure_workload.id
+  log_analytics_destination_type = "Dedicated"
+
+  enabled_log {
+    category = "ApplicationGatewayFirewallLog"
+  }
+
+  enabled_log{
+    category = "ApplicationGatewayAccessLog"
   }
 } 

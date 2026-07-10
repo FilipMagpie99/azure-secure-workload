@@ -18,3 +18,7 @@ variable "subscription_id" {
 variable "postgres_server_id" {
   type = string
 }
+
+variable "secure_workload_appgw_id" {
+  type = string
+}
