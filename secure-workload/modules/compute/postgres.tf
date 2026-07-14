@@ -6,12 +6,12 @@ data "azurerm_client_config" "current" {
 }
 
 resource "azurerm_postgresql_flexible_server" "secure_workload_postgres" {
-  name                = "fs99-secure-workload-postgres"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  version             = "15"
+  name                          = "fs99-secure-workload-postgres"
+  location                      = var.location
+  resource_group_name           = var.resource_group_name
+  version                       = "15"
   public_network_access_enabled = false
-  zone = "3"
+  zone                          = "3"
 
   authentication {
     password_auth_enabled         = false

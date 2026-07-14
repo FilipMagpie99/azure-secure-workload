@@ -17,3 +17,11 @@ output "backend_app_service_id" {
 output "postgres_server_id" {
   value = azurerm_postgresql_flexible_server.secure_workload_postgres.id
 }
+
+output "appgw_identity_id" {
+  value = azurerm_user_assigned_identity.appgw_identity.id
+}
+
+output "appgw_cert_versionless_secret_id" {
+  value = azurerm_key_vault_certificate.appgw_cert.versionless_secret_id
+}

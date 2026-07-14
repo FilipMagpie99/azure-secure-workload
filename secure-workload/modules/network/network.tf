@@ -27,13 +27,6 @@ resource "azurerm_subnet" "snet-app" {
   }
 }
 
-resource "azurerm_subnet" "snet-data" {
-  name                 = "snet-data"
-  resource_group_name  = var.resource_group_name
-  virtual_network_name = azurerm_virtual_network.vnet-secure-workload.name
-  address_prefixes     = ["10.1.3.0/28"]
-
-}
 
 resource "azurerm_subnet" "snet-pe" {
   name                 = "snet-pe"
@@ -49,33 +42,14 @@ resource "azurerm_network_security_group" "nsg-app" {
   resource_group_name = var.resource_group_name
 }
 
-resource "azurerm_network_security_group" "nsg-data" {
-  name                = "nsg-data"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-}
 
-resource "azurerm_application_security_group" "asg-front" {
-  name                = "asg-front"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-}
 
-resource "azurerm_application_security_group" "asg-back" {
-  name                = "asg-back"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-}
 
 resource "azurerm_subnet_network_security_group_association" "snet-app-nsg-association" {
   subnet_id                 = azurerm_subnet.snet-app.id
   network_security_group_id = azurerm_network_security_group.nsg-app.id
 }
 
-resource "azurerm_subnet_network_security_group_association" "snet-data-nsg-association" {
-  subnet_id                 = azurerm_subnet.snet-data.id
-  network_security_group_id = azurerm_network_security_group.nsg-data.id
-}
 
 
 resource "azurerm_storage_account" "secure_workload_network_log_data" {

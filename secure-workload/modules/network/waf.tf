@@ -3,7 +3,7 @@ resource "azurerm_subnet" "snet-appgw" {
   resource_group_name  = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.vnet-secure-workload.name
   address_prefixes     = ["10.1.5.0/24"]
-  service_endpoints = ["Microsoft.Web"]
+  service_endpoints    = ["Microsoft.Web"]
 }
 
 resource "azurerm_public_ip" "pub_ip_appgw" {
@@ -12,6 +12,7 @@ resource "azurerm_public_ip" "pub_ip_appgw" {
   resource_group_name = var.resource_group_name
   allocation_method   = "Static"
   sku                 = "Standard"
+
 }
 
 
@@ -48,6 +49,15 @@ resource "azurerm_application_gateway" "secure_workload_appgw" {
   location            = var.location
   resource_group_name = var.resource_group_name
 
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [var.appgw_identity_id]
+  }
+
+  ssl_certificate {
+    name                = "appgw-kv-cert"
+    key_vault_secret_id = var.appgw_cert_versionless_secret_id
+  }
   # Configure the SKU and capacity
   sku {
     name = "WAF_v2"
@@ -75,31 +85,60 @@ resource "azurerm_application_gateway" "secure_workload_appgw" {
   # Define the frontend port
   frontend_port {
     name = "appgw-frontend-port"
-    port = 80
+    port = 443
   }
 
   # Define the backend address pool with IP addresses
   backend_address_pool {
-    name         = "appgw-backend-pool"
-    fqdns        = ["fs99-frontend-secure-workload.azurewebsites.net"] # Replace with your backend FQDNs
+    name  = "appgw-backend-pool"
+    fqdns = ["fs99-frontend-secure-workload.azurewebsites.net"] # Replace with your backend FQDNs
   }
 
   # Configure backend HTTP settings
   backend_http_settings {
-    name                  = "appgw-backend-http-settings"
-    cookie_based_affinity = "Disabled"
-    port                  = 80
-    protocol              = "Http"
-    request_timeout       = 20
+    name                                = "appgw-backend-http-settings"
+    cookie_based_affinity               = "Disabled"
+    port                                = 443
+    protocol                            = "Https"
+    request_timeout                     = 20
     pick_host_name_from_backend_address = true
   }
+
+  frontend_port {
+  name = "appgw-frontend-port-http"
+  port = 80
+}
+
+http_listener {
+  name                           = "appgw-http-listener-redirect"
+  frontend_ip_configuration_name = "appgw-frontend-ip"
+  frontend_port_name             = "appgw-frontend-port-http"
+  protocol                       = "Http"
+}
+
+redirect_configuration {
+  name                 = "http-to-https-redirect"
+  redirect_type        = "Permanent"          # 301
+  target_listener_name = "appgw-http-listener" 
+  include_path         = true
+  include_query_string = true
+}
+
+request_routing_rule {
+  name                        = "appgw-redirect-rule"
+  priority                    = 10
+  rule_type                   = "Basic"
+  http_listener_name          = "appgw-http-listener-redirect"
+  redirect_configuration_name = "http-to-https-redirect"
+}
 
   # Define the HTTP listener
   http_listener {
     name                           = "appgw-http-listener"
     frontend_ip_configuration_name = "appgw-frontend-ip"
     frontend_port_name             = "appgw-frontend-port"
-    protocol                       = "Http"
+    protocol                       = "Https"
+    ssl_certificate_name           = "appgw-kv-cert" 
   }
 
   # Define the request routing rule
@@ -112,5 +151,6 @@ resource "azurerm_application_gateway" "secure_workload_appgw" {
     backend_http_settings_name = "appgw-backend-http-settings"
   }
 
-    firewall_policy_id = azurerm_web_application_firewall_policy.secure_workload_waf_policy.id
+  firewall_policy_id = azurerm_web_application_firewall_policy.secure_workload_waf_policy.id
 }
+
