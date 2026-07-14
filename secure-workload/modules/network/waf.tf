@@ -105,32 +105,32 @@ resource "azurerm_application_gateway" "secure_workload_appgw" {
   }
 
   frontend_port {
-  name = "appgw-frontend-port-http"
-  port = 80
-}
+    name = "appgw-frontend-port-http"
+    port = 80
+  }
 
-http_listener {
-  name                           = "appgw-http-listener-redirect"
-  frontend_ip_configuration_name = "appgw-frontend-ip"
-  frontend_port_name             = "appgw-frontend-port-http"
-  protocol                       = "Http"
-}
+  http_listener {
+    name                           = "appgw-http-listener-redirect"
+    frontend_ip_configuration_name = "appgw-frontend-ip"
+    frontend_port_name             = "appgw-frontend-port-http"
+    protocol                       = "Http"
+  }
 
-redirect_configuration {
-  name                 = "http-to-https-redirect"
-  redirect_type        = "Permanent"          # 301
-  target_listener_name = "appgw-http-listener" 
-  include_path         = true
-  include_query_string = true
-}
+  redirect_configuration {
+    name                 = "http-to-https-redirect"
+    redirect_type        = "Permanent" # 301
+    target_listener_name = "appgw-http-listener"
+    include_path         = true
+    include_query_string = true
+  }
 
-request_routing_rule {
-  name                        = "appgw-redirect-rule"
-  priority                    = 10
-  rule_type                   = "Basic"
-  http_listener_name          = "appgw-http-listener-redirect"
-  redirect_configuration_name = "http-to-https-redirect"
-}
+  request_routing_rule {
+    name                        = "appgw-redirect-rule"
+    priority                    = 10
+    rule_type                   = "Basic"
+    http_listener_name          = "appgw-http-listener-redirect"
+    redirect_configuration_name = "http-to-https-redirect"
+  }
 
   # Define the HTTP listener
   http_listener {
@@ -138,7 +138,7 @@ request_routing_rule {
     frontend_ip_configuration_name = "appgw-frontend-ip"
     frontend_port_name             = "appgw-frontend-port"
     protocol                       = "Https"
-    ssl_certificate_name           = "appgw-kv-cert" 
+    ssl_certificate_name           = "appgw-kv-cert"
   }
 
   # Define the request routing rule

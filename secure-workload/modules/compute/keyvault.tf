@@ -43,7 +43,7 @@ resource "azurerm_key_vault_certificate" "appgw_cert" {
       trigger { days_before_expiry = 30 }
     }
   }
-    depends_on = [azurerm_role_assignment.deployer_kv_certificates_officer]
+  depends_on = [azurerm_role_assignment.deployer_kv_certificates_officer]
 }
 
 #User assigned managed identity for the Application Gateway to authenticate to Key Vault and retrieve the certificate

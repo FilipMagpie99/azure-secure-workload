@@ -10,3 +10,7 @@ variable "resource_group_name" {
   default     = "rg-secure-workload"
 }
 
+variable "dev_ip" {
+  description = "IP address of the developer machine for access to the App Services"
+  type        = string
+}
