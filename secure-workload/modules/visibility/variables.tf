@@ -8,7 +8,7 @@ variable "resource_group_name" {
 
 
 variable "app_service_ids" {
-    type = map(string)
+  type = map(string)
 }
 
 variable "subscription_id" {

@@ -10,9 +10,6 @@ variable "subnet_id_app" {
   type = string
 }
 
-variable "subnet_id_data" {
-  type = string
-}
 
 variable "snet_pe_id" {
   type = string

@@ -3,7 +3,7 @@ resource "azurerm_service_plan" "secure-app_service_plan" {
   location            = var.location
   resource_group_name = var.resource_group_name
   os_type             = "Linux"
-  sku_name            = "S2"
+  sku_name            = "B1" #switch to s1 for production testing
 }
 
 resource "azurerm_linux_web_app" "frontend_secure_workload" {
@@ -14,17 +14,18 @@ resource "azurerm_linux_web_app" "frontend_secure_workload" {
   virtual_network_subnet_id                      = var.subnet_id_app
   ftp_publish_basic_authentication_enabled       = false
   webdeploy_publish_basic_authentication_enabled = false
+  https_only = true
   site_config {
-    vnet_route_all_enabled  = true
-    ftps_state              = "Disabled"
-    minimum_tls_version     = "1.2"
-    scm_minimum_tls_version = "1.2"
-    http2_enabled           = true
-    ip_restriction_default_action     = "Deny" 
+    vnet_route_all_enabled        = true
+    ftps_state                    = "Disabled"
+    minimum_tls_version           = "1.2"
+    scm_minimum_tls_version       = "1.2"
+    http2_enabled                 = true
+    ip_restriction_default_action = "Deny"
 
-    ip_restriction{ 
-      action = "Allow"
-      name = "Allow-AppGW"
+    ip_restriction {
+      action                    = "Allow"
+      name                      = "Allow-AppGW"
       virtual_network_subnet_id = var.subnet_id_appgw
     }
   }
@@ -44,6 +45,7 @@ resource "azurerm_linux_web_app" "backend_secure_workload" {
   ftp_publish_basic_authentication_enabled       = false
   webdeploy_publish_basic_authentication_enabled = false
   public_network_access_enabled                  = true
+  https_only = true
 
   site_config {
     vnet_route_all_enabled            = true
