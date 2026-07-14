@@ -22,3 +22,7 @@ variable "postgres_server_id" {
 variable "secure_workload_appgw_id" {
   type = string
 }
+
+variable "kv_id" {
+  type = string
+}
