@@ -6,6 +6,51 @@ resource "azurerm_subnet" "snet-appgw" {
   service_endpoints    = ["Microsoft.Web"]
 }
 
+resource "azurerm_network_security_group" "nsg-appgw" {
+  name                = "nsg-appgw"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+
+  security_rule {
+    name                       = "Allow-HTTP-HTTPS-Inbound"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = "Internet"
+    source_port_range          = "*"
+    destination_address_prefix = "*"
+    destination_port_ranges    = ["80", "443"]
+  }
+  security_rule {
+    name                       = "Allow-GatewayManager"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = "GatewayManager"
+    source_port_range          = "*"
+    destination_address_prefix = "*"
+    destination_port_range     = "65200-65535"
+  }
+  security_rule {
+    name                       = "Allow-AzureLoadBalancer"
+    priority                   = 120
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_address_prefix      = "AzureLoadBalancer"
+    source_port_range          = "*"
+    destination_address_prefix = "*"
+    destination_port_range     = "*"
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "snet-appgw-nsg" {
+  subnet_id                 = azurerm_subnet.snet-appgw.id
+  network_security_group_id = azurerm_network_security_group.nsg-appgw.id
+}
+
 resource "azurerm_public_ip" "pub_ip_appgw" {
   name                = "pub_ip_appgw"
   location            = var.location

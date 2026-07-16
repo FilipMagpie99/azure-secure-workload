@@ -13,9 +13,6 @@ resource "azurerm_monitor_diagnostic_setting" "diag-app-to-law-secure-workload" 
   log_analytics_workspace_id     = azurerm_log_analytics_workspace.law_secure_workload.id
   log_analytics_destination_type = "Dedicated"
 
-  enabled_metric {
-    category = "AllMetrics"
-  }
   enabled_log {
     category = "AppServiceIPSecAuditLogs"
   }
@@ -74,14 +71,14 @@ resource "azurerm_monitor_diagnostic_setting" "diag-appgw-to-law-secure-workload
   enabled_log {
     category = "ApplicationGatewayAccessLog"
   }
-} 
+}
 
 resource "azurerm_monitor_diagnostic_setting" "diag-kv-to-law-secure-workload" {
   name                           = "diag-kv-to-law-secure-workload"
   target_resource_id             = var.kv_id
   log_analytics_workspace_id     = azurerm_log_analytics_workspace.law_secure_workload.id
   log_analytics_destination_type = "Dedicated"
-  enabled_log { 
-    category = "AuditEvent" 
-    }
+  enabled_log {
+    category = "AuditEvent"
+  }
 }

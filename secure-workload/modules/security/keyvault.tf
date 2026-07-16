@@ -1,10 +1,11 @@
-data "azurerm_client_config" "current1" {}
+data "azurerm_client_config" "current" {
+}
 
 resource "azurerm_key_vault" "kv_secure_workload" {
   name                       = "kv-secure-workload"
   location                   = var.location
   resource_group_name        = var.resource_group_name
-  tenant_id                  = data.azurerm_client_config.current1.tenant_id
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
   sku_name                   = "standard"
   purge_protection_enabled   = false
   rbac_authorization_enabled = true
@@ -63,5 +64,5 @@ resource "azurerm_role_assignment" "appgw_identity_keyvault_reader" {
 resource "azurerm_role_assignment" "deployer_kv_certificates_officer" {
   scope                = azurerm_key_vault.kv_secure_workload.id
   role_definition_name = "Key Vault Certificates Officer"
-  principal_id         = data.azurerm_client_config.current1.object_id
+  principal_id         = data.azurerm_client_config.current.object_id
 }
