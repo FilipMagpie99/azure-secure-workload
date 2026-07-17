@@ -19,6 +19,10 @@ resource "azurerm_resource_group" "rg" {
   location = var.location
 }
 
+module "governance" {
+  source = "./modules/governance"
+  resource_group_id = azurerm_resource_group.rg.id
+}
 module "security" {
   source = "./modules/security"
     location                         = azurerm_resource_group.rg.location
