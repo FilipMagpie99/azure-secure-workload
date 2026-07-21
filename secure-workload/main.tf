@@ -20,13 +20,13 @@ resource "azurerm_resource_group" "rg" {
 }
 
 module "governance" {
-  source = "./modules/governance"
+  source            = "./modules/governance"
   resource_group_id = azurerm_resource_group.rg.id
 }
 module "security" {
-  source = "./modules/security"
-    location                         = azurerm_resource_group.rg.location
-  resource_group_name              = azurerm_resource_group.rg.name
+  source              = "./modules/security"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
 }
 module "network" {
   source                           = "./modules/network"
@@ -74,20 +74,20 @@ moved {
   from = module.compute.azurerm_key_vault_certificate.appgw_cert
   to   = module.security.azurerm_key_vault_certificate.appgw_cert
 }
-moved{
+moved {
   from = module.compute.azurerm_key_vault.kv_secure_workload
   to   = module.security.azurerm_key_vault.kv_secure_workload
 }
-moved{
+moved {
   from = module.compute.azurerm_role_assignment.deployer_kv_certificates_officer
   to   = module.security.azurerm_role_assignment.deployer_kv_certificates_officer
 }
-moved{
+moved {
   from = module.compute.azurerm_role_assignment.appgw_identity_keyvault_reader
-  to = module.security.azurerm_role_assignment.appgw_identity_keyvault_reader
+  to   = module.security.azurerm_role_assignment.appgw_identity_keyvault_reader
 }
-moved{
+moved {
   from = module.compute.azurerm_user_assigned_identity.appgw_identity
-  to = module.security.azurerm_user_assigned_identity.appgw_identity
+  to   = module.security.azurerm_user_assigned_identity.appgw_identity
 }
 

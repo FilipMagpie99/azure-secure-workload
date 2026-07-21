@@ -1,3 +1,3 @@
 variable "resource_group_id" {
-    type = string
+  type = string
 }
