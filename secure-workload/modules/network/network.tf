@@ -52,6 +52,12 @@ resource "azurerm_storage_account" "secure_workload_network_log_data" {
   account_tier             = "Standard"
   account_replication_type = "LRS"
   min_tls_version          = "TLS1_2"
+  network_rules { 
+    default_action = "Deny" 
+    bypass = ["AzureServices"] 
+    ip_rules = [split("/", var.dev_ip)[0]]
+  }  
+      allow_nested_items_to_be_public = false
 }
 
 resource "azurerm_network_watcher" "NetworkWatcher_secure_workload" {

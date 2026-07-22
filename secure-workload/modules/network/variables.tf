@@ -14,3 +14,6 @@ variable "appgw_cert_versionless_secret_id" {
   type = string
 }
 
+variable "dev_ip" {
+  type = string
+}
