@@ -1,4 +1,3 @@
-# PRtest
 # Day 10 — Azure Policy: assignments, exemptions, evaluation model
 
 ## Cheat sheet
