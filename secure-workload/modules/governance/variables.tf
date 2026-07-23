@@ -5,3 +5,7 @@ variable "resource_group_id" {
 variable "frontend_app_service_id"{
   type = string
 }
+
+variable "backend_app_service_id" {
+  type = string
+}

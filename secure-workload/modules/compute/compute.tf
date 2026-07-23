@@ -3,7 +3,7 @@ resource "azurerm_service_plan" "secure-app_service_plan" {
   location            = var.location
   resource_group_name = var.resource_group_name
   os_type             = "Linux"
-  sku_name            = "S1" #switch to s1 for production testing
+  sku_name            = "B1" #switch to s1 for production testing
 }
 
 resource "azurerm_linux_web_app" "frontend_secure_workload" {
