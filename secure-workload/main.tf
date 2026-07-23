@@ -73,6 +73,7 @@ module "governance" {
   source            = "./modules/governance"
   resource_group_id = azurerm_resource_group.rg.id
   frontend_app_service_id = module.compute.frontend_app_service_id
+  backend_app_service_id = module.compute.backend_app_service_id
 }
 moved {
   from = module.compute.azurerm_key_vault_certificate.appgw_cert
