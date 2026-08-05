@@ -33,7 +33,7 @@ module "network" {
   resource_group_name              = azurerm_resource_group.rg.name
   appgw_identity_id                = module.security.appgw_identity_id
   appgw_cert_versionless_secret_id = module.security.appgw_cert_versionless_secret_id
-  dev_ip              = var.dev_ip
+  dev_ip                           = var.dev_ip
 }
 
 module "compute" {
@@ -71,10 +71,10 @@ module "visibility" {
 }
 
 module "governance" {
-  source            = "./modules/governance"
-  resource_group_id = azurerm_resource_group.rg.id
+  source                  = "./modules/governance"
+  resource_group_id       = azurerm_resource_group.rg.id
   frontend_app_service_id = module.compute.frontend_app_service_id
-  backend_app_service_id = module.compute.backend_app_service_id
+  backend_app_service_id  = module.compute.backend_app_service_id
 }
 moved {
   from = module.compute.azurerm_key_vault_certificate.appgw_cert
