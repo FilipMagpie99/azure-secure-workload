@@ -136,7 +136,7 @@ resource "azurerm_application_gateway" "secure_workload_appgw" {
   # Define the backend address pool with IP addresses
   backend_address_pool {
     name  = "appgw-backend-pool"
-    fqdns = ["fs99-frontend-secure-workload.azurewebsites.net"] # Replace with your backend FQDNs
+    fqdns = ["fsf99-frontend-secure-workload.azurewebsites.net"] # Replace with your backend FQDNs
   }
 
   # Configure backend HTTP settings

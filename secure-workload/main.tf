@@ -8,6 +8,7 @@ provider "azurerm" {
       recover_soft_deleted_key_vaults = true
     }
   }
+  use_oidc = true
 }
 
 data "azurerm_subscription" "current" {

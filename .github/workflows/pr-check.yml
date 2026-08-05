@@ -1,0 +1,44 @@
+name: pr-checks
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_USE_OIDC: "true"
+  ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
+
+defaults:
+  run:
+    working-directory: secure-workload
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: fmt
+        run: terraform fmt -check -recursive
+
+      - name: init
+        run: terraform init
+
+      - name: validate
+        run: terraform validate
+
+      - name: plan
+        run: terraform plan -no-color -input=false
+
+      - name: checkov
+        run: |
+          pip install checkov
+          checkov -d . --soft-fail
