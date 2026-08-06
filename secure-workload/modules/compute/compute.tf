@@ -3,7 +3,7 @@ resource "azurerm_service_plan" "secure-app_service_plan" {
   location            = var.location
   resource_group_name = var.resource_group_name
   os_type             = "Linux"
-  sku_name            = "S1" #switch to s1 for production testing
+  sku_name            = "B1" #switch to s1 for production testing
 }
 
 resource "azurerm_linux_web_app" "frontend_secure_workload" {
@@ -66,7 +66,11 @@ resource "azurerm_linux_web_app" "backend_secure_workload" {
     ip_restriction_default_action     = "Deny"
     scm_ip_restriction_default_action = "Deny"
     scm_use_main_ip_restriction       = false
+    app_command_line = "gunicorn --bind 0.0.0.0:8000 app:app"
 
+    application_stack {
+      python_version = "3.12"
+    }
     scm_ip_restriction {
       ip_address = var.dev_ip
       name       = "Allow-Dev-IP"
