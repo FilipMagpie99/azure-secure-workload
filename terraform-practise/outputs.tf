@@ -1,5 +1,5 @@
 output "vnet_id" {
-  value =  module.network.vnet_id
+  value = module.network.vnet_id
 }
 
 output "frontend_subnet_id" {
