@@ -66,7 +66,7 @@ resource "azurerm_linux_web_app" "backend_secure_workload" {
     ip_restriction_default_action     = "Deny"
     scm_ip_restriction_default_action = "Deny"
     scm_use_main_ip_restriction       = false
-    app_command_line = "gunicorn --bind 0.0.0.0:8000 app:app"
+    app_command_line                  = "gunicorn --bind 0.0.0.0:8000 app:app"
 
     application_stack {
       python_version = "3.12"
