@@ -1,13 +1,13 @@
 resource "azurerm_service_plan" "secure-app_service_plan" {
-  name                = "secure-app-service-plan"
+  name                = "securefs-apps-service-plan"
   location            = var.location
   resource_group_name = var.resource_group_name
   os_type             = "Linux"
-  sku_name            = "B1" #switch to s1 for production testing
+  sku_name            = "S1" #switch to s1 for production testing
 }
 
 resource "azurerm_linux_web_app" "frontend_secure_workload" {
-  name                                           = "fs99-frontend-secure-workload"
+  name                                           = "fsf99-frontend-secure-workload"
   location                                       = var.location
   resource_group_name                            = var.resource_group_name
   service_plan_id                                = azurerm_service_plan.secure-app_service_plan.id
@@ -47,7 +47,7 @@ resource "azurerm_linux_web_app" "frontend_secure_workload" {
 }
 
 resource "azurerm_linux_web_app" "backend_secure_workload" {
-  name                                           = "fs99-backend-secure-workload"
+  name                                           = "fsf99-backend-secure-workload"
   location                                       = var.location
   resource_group_name                            = var.resource_group_name
   service_plan_id                                = azurerm_service_plan.secure-app_service_plan.id

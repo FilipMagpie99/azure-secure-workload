@@ -46,22 +46,22 @@ resource "azurerm_subnet_network_security_group_association" "snet-app-nsg-assoc
 
 
 resource "azurerm_storage_account" "secure_workload_network_log_data" {
-  name                     = "workloadnetworkfs2123"
+  name                     = "workloadnetworkfs223123"
   resource_group_name      = var.resource_group_name
   location                 = var.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
   min_tls_version          = "TLS1_2"
-  network_rules { 
-    default_action = "Deny" 
-    bypass = ["AzureServices"] 
-    ip_rules = [split("/", var.dev_ip)[0]]
-  }  
-      allow_nested_items_to_be_public = false
+  network_rules {
+    default_action = "Deny"
+    bypass         = ["AzureServices"]
+    ip_rules       = [split("/", var.dev_ip)[0]]
+  }
+  allow_nested_items_to_be_public = false
 }
 
 resource "azurerm_network_watcher" "NetworkWatcher_secure_workload" {
-  name                = "NetworkWatcher_secure_workload"
+  name                = "NetworkWatcherfs_secure_workload"
   location            = var.location
   resource_group_name = var.resource_group_name
 }

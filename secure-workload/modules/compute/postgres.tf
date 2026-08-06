@@ -1,12 +1,8 @@
-data "azuread_user" "current" {
-  object_id = data.azurerm_client_config.current.object_id
-}
-
 data "azurerm_client_config" "current" {
 }
 
 resource "azurerm_postgresql_flexible_server" "secure_workload_postgres" {
-  name                          = "fs99-secure-workload-postgres"
+  name                          = "fs99fs-secure-workload-postgres"
   location                      = var.location
   resource_group_name           = var.resource_group_name
   version                       = "15"
@@ -39,8 +35,8 @@ resource "azurerm_postgresql_flexible_server_active_directory_administrator" "se
   server_name         = azurerm_postgresql_flexible_server.secure_workload_postgres.name
   resource_group_name = var.resource_group_name
   tenant_id           = data.azurerm_client_config.current.tenant_id
-  object_id           = data.azuread_user.current.object_id
-  principal_name      = data.azuread_user.current.user_principal_name
+  object_id           = var.pg_entra_admin_object_id
+  principal_name      = var.pg_entra_admin_upn
   principal_type      = "User"
 }
 
