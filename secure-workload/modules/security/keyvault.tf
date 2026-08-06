@@ -2,7 +2,7 @@ data "azurerm_client_config" "current" {
 }
 
 resource "azurerm_key_vault" "kv_secure_workload" {
-  name                       = "kv-secure-workload"
+  name                       = "kv-secure-fs-workload"
   location                   = var.location
   resource_group_name        = var.resource_group_name
   tenant_id                  = data.azurerm_client_config.current.tenant_id
@@ -44,7 +44,6 @@ resource "azurerm_key_vault_certificate" "appgw_cert" {
       trigger { days_before_expiry = 30 }
     }
   }
-  depends_on = [azurerm_role_assignment.deployer_kv_certificates_officer]
 }
 
 #User assigned managed identity for the Application Gateway to authenticate to Key Vault and retrieve the certificate
@@ -60,9 +59,3 @@ resource "azurerm_role_assignment" "appgw_identity_keyvault_reader" {
   principal_id         = azurerm_user_assigned_identity.appgw_identity.principal_id
 }
 
-#assigning permission to the current user (terraform) to manage certificates in the Key Vault
-resource "azurerm_role_assignment" "deployer_kv_certificates_officer" {
-  scope                = azurerm_key_vault.kv_secure_workload.id
-  role_definition_name = "Key Vault Certificates Officer"
-  principal_id         = data.azurerm_client_config.current.object_id
-}

@@ -96,10 +96,10 @@ resource "azurerm_resource_policy_exemption" "frontend_pna_mitigated" {
 }
 
 resource "azurerm_resource_policy_exemption" "backend_pna_mitigated" {
-  name = "exempt-pna-backend"
-  resource_id = var.backend_app_service_id
+  name                 = "exempt-pna-backend"
+  resource_id          = var.backend_app_service_id
   policy_assignment_id = azurerm_resource_group_policy_assignment.appsvc_pna_disabled.id
-  exemption_category = "Mitigated"
+  exemption_category   = "Mitigated"
 
   display_name = "PNA mitigated by ip_restriction default Deny + App Gateway path"
   description  = "Policy intent (no uncontrolled public path) achieved via ACLs: site and SCM default_action=Deny, application traffic exclusively through AppGW/WAF. Residual risk: endpoint still exists, attack surface = ACL parser + SCM reachable from admin IP. Accepted due to deployability requirement. See ADR-XX."
