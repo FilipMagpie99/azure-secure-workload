@@ -101,7 +101,7 @@ resource "azurerm_application_gateway" "secure_workload_appgw" {
   resource_group_name = var.resource_group_name
   ssl_policy {
     policy_type = "Predefined"
-    policy_name = "AppGwSslPolicy20220101"
+    policy_name = "AppGwSslPolicy20220101S"
   }
   identity {
     type         = "UserAssigned"
