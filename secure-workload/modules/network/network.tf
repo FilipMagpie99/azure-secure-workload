@@ -46,6 +46,9 @@ resource "azurerm_subnet_network_security_group_association" "snet-app-nsg-assoc
 
 
 resource "azurerm_storage_account" "secure_workload_network_log_data" {
+  #checkov:skip=CKV_AZURE_206:Lab cost optimization; LRS sufficient for lab flow logs, production would use ZRS/GRS
+  #checkov:skip=CKV_AZURE_33:Queue service not used on this account; blob-only flow log sink
+  #checkov:skip=CKV2_AZURE_1:CMK encryption out of scope; platform-managed keys acceptable for lab log data
   name                     = "workloadnetworkfs223123"
   resource_group_name      = var.resource_group_name
   location                 = var.location

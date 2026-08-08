@@ -1,4 +1,5 @@
 resource "azurerm_service_plan" "secure-app_service_plan" {
+  #checkov:skip=CKV_AZURE_211:SKU toggled between B1 (lab idle cost) and S1 (VNet integration testing); production would use S1+
   #checkov:skip=CKV_AZURE_212:Lab cost optimization; production would run multiple instances for failover
   #checkov:skip=CKV_AZURE_225:Lab cost optimization; production would enable zone redundancy
   name                = "securefs-apps-service-plan"
