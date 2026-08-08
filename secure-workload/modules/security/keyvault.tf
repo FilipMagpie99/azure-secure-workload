@@ -2,6 +2,8 @@ data "azurerm_client_config" "current" {
 }
 
 resource "azurerm_key_vault" "kv_secure_workload" {
+  #checkov:skip=CKV_AZURE_110:Lab with frequent teardowns; purge protection blocks vault name reuse for retention period
+  #checkov:skip=CKV_AZURE_42:Recoverability attribute same as CKV_AZURE_110; lab teardown trade-off
   name                       = "kv-secure-fs-workload"
   location                   = var.location
   resource_group_name        = var.resource_group_name
