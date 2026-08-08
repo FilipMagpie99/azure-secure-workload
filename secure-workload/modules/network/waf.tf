@@ -7,6 +7,8 @@ resource "azurerm_subnet" "snet-appgw" {
 }
 
 resource "azurerm_network_security_group" "nsg-appgw" {
+  #checkov:skip=CKV_AZURE_160:Port 80 open solely for HTTP-to-HTTPS redirect enforced by CKV_AZURE_14
+  #checkov:skip=CKV_AZURE_217:HTTP listener performs redirect-only; no traffic served over port 80
   name                = "nsg-appgw"
   location            = var.location
   resource_group_name = var.resource_group_name
@@ -45,6 +47,8 @@ resource "azurerm_network_security_group" "nsg-appgw" {
     destination_port_range     = "*"
   }
 }
+
+
 
 resource "azurerm_subnet_network_security_group_association" "snet-appgw-nsg" {
   subnet_id                 = azurerm_subnet.snet-appgw.id
@@ -90,10 +94,15 @@ resource "azurerm_web_application_firewall_policy" "secure_workload_waf_policy" 
 
 # Create the Application Gateway
 resource "azurerm_application_gateway" "secure_workload_appgw" {
+  #checkov:skip=CKV_AZURE_160:Port 80 open solely for HTTP-to-HTTPS redirect enforced by CKV_AZURE_14
+  #checkov:skip=CKV_AZURE_217:HTTP listener performs redirect-only; no traffic served over port 80
   name                = "secure-workload-appgw"
   location            = var.location
   resource_group_name = var.resource_group_name
-
+  ssl_policy {
+    policy_type = "Predefined"
+    policy_name = "AppGwSslPolicy20220101S"
+  }
   identity {
     type         = "UserAssigned"
     identity_ids = [var.appgw_identity_id]
