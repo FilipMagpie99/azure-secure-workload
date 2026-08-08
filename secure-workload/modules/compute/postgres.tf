@@ -2,6 +2,7 @@ data "azurerm_client_config" "current" {
 }
 
 resource "azurerm_postgresql_flexible_server" "secure_workload_postgres" {
+  #checkov:skip=CKV_AZURE_136:Lab cost optimization; production would enable geo-redundant backups
   name                          = "fs99fs-secure-workload-postgres"
   location                      = var.location
   resource_group_name           = var.resource_group_name

@@ -57,6 +57,18 @@ resource "azurerm_storage_account" "secure_workload_network_log_data" {
     bypass         = ["AzureServices"]
     ip_rules       = [split("/", var.dev_ip)[0]]
   }
+  sas_policy {
+    expiration_period = "01.00:00:00"
+  }
+
+  blob_properties {
+    delete_retention_policy {
+      days = 7
+    }
+    container_delete_retention_policy {
+      days = 7
+    }
+  }
   allow_nested_items_to_be_public = false
 }
 
@@ -78,4 +90,38 @@ resource "azurerm_network_watcher_flow_log" "azurerm_network_watcher_flow_log_se
     days    = 90
   }
 
+}
+
+resource "azurerm_network_security_group" "nsg-pe" {
+  name                = "nsg-pe"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+
+  security_rule {
+    name                       = "Allow-VNet-PE-Inbound"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_address_prefix      = "VirtualNetwork"
+    source_port_range          = "*"
+    destination_address_prefix = "*"
+    destination_port_ranges    = ["443", "5432"]
+  }
+  security_rule {
+    name                       = "Deny-All-Inbound"
+    priority                   = 4096
+    direction                  = "Inbound"
+    access                     = "Deny"
+    protocol                   = "*"
+    source_address_prefix      = "*"
+    source_port_range          = "*"
+    destination_address_prefix = "*"
+    destination_port_range     = "*"
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "pe" {
+  subnet_id                 = azurerm_subnet.snet-pe.id
+  network_security_group_id = azurerm_network_security_group.nsg-pe.id
 }
