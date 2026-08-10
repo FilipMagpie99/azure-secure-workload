@@ -1,0 +1,5 @@
+let DevIp = "<DEV_IP>";
+AppServiceIPSecAuditLogs
+| where TimeGenerated > ago(24h)
+| extend ClientIp = tostring(split(CIp, ":")[0])
+| where CsHost endswith ".scm.azurewebsites.net" and not(ipv4_is_match(ClientIp, DevIp)) and Result == "Denied"
