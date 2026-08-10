@@ -13,13 +13,19 @@ resource "azurerm_monitor_diagnostic_setting" "diag-app-to-law-secure-workload" 
   log_analytics_workspace_id     = azurerm_log_analytics_workspace.law_secure_workload.id
   log_analytics_destination_type = "Dedicated"
 
-  enabled_log {
-    category = "AppServiceIPSecAuditLogs"
+  dynamic "enabled_log" {
+    for_each = toset([
+      "AppServiceIPSecAuditLogs",
+      "AppServiceHTTPLogs",
+      "AppServiceAuditLogs",
+      "AppServicePlatformLogs",
+      "AppServiceConsoleLogs",
+      "AppServiceAppLogs",
+    ])
+    content {
+      category = enabled_log.value
+    }
   }
-  enabled_log {
-    category = "AppServiceHTTPLogs"
-  }
-
 }
 
 resource "azurerm_monitor_diagnostic_setting" "diag-sub-to-law-secure-workload" {
