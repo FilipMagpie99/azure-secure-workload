@@ -1,0 +1,37 @@
+// WAF-flagged request that still reached the backend
+
+// The gateway sits on a public IP, so it is scanned continuously. Volume
+// of blocked or matched traffic is therefore background noise, not a signal, and
+// blocking individual sources does not scale (an observed campaign used eight
+// rotating addresses with an identical payload). What matters operationally is the
+// opposite question: did anything that tripped the WAF still get served? A request
+// that fires multiple rule categories and receives a 2xx means the control did not
+// stop it; a 5xx means the payload reached application code and broke something.
+
+let AppGwPublicIp = "<APPGW_PUBLIC_IP>";
+let RuleDiversityThreshold = 8;
+let waf =
+    AGWFirewallLogs
+    | where TimeGenerated > ago(1h)
+    | where not(RuleId == "920350" and Hostname has AppGwPublicIp)
+    | summarize distinctRules = dcount(RuleId),
+                wafHits      = count(),
+                ruleIds      = make_set(RuleId, 20),
+                escalated    = countif(Action in ("Detected", "Blocked"))
+            by ClientIp, hour = bin(TimeGenerated, 1h);
+let access =
+    AGWAccessLogs
+    | where TimeGenerated > ago(1h)
+    | summarize requests = count(),
+                served   = countif(HttpStatus between (200 .. 299)),
+                errors   = countif(HttpStatus >= 500),
+                statuses = make_set(HttpStatus, 10),
+                uris     = make_set(RequestUri, 10)
+            by ClientIp, hour = bin(TimeGenerated, 1h);
+waf
+| join kind=leftouter access on ClientIp, hour
+| where distinctRules >= RuleDiversityThreshold
+    and (served > 0 or errors > 0)
+| project hour, ClientIp, distinctRules, wafHits, escalated,
+          requests, served, errors, statuses, uris, ruleIds
+| sort by served desc, errors desc

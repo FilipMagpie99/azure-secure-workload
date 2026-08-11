@@ -1,0 +1,26 @@
+//PostgreSQL authentication and connection anomaly
+
+// The Flexible Server is configured with password_auth_enabled = false
+// and Entra-only authentication, reachable exclusively over a private endpoint.
+// The measured baseline is single-valued: every observed connection uses
+// method=cert from host=127.0.0.1 as user=azuresu (platform maintenance traffic),
+// and every log line is ErrorLevel=LOG. Any deviation from that baseline is an
+// anomaly by construction, a different auth method means the password-auth control was bypassed or drifted, a non-LOG level means a
+// connection was rejected, and a non-local source means traffic reached the server from somewhere other than the platform.
+// Not yet validated against a real deviation as there is no production traffic, but it will be validated in the future with mockup app. 
+
+let PlatformHost = "127.0.0.1";
+PGSQLServerLogs
+| where TimeGenerated > ago(1h)
+| extend AuthMethod = tostring(extract(@"method=(\w+)", 1, Message)),
+SourceHost = tostring(extract(@"host=([^\s,)]+)", 1, Message)),
+PgUser     = tostring(extract(@"user=([^\s,)]+)", 1, Message)),
+PgDatabase = tostring(extract(@"database=([^\s,)]+)", 1, Message))
+| extend AnomalyType = 
+case(
+ErrorLevel != "LOG",                                        "rejected_connection",
+AuthMethod != "" and AuthMethod != "cert",                  "unexpected_auth_method",
+SourceHost != "" and SourceHost != PlatformHost,            "non_platform_source", "")
+| where AnomalyType != ""
+| project TimeGenerated, AnomalyType, ErrorLevel, SqlErrorCode, PgUser, PgDatabase, AuthMethod, SourceHost, Message
+| sort by TimeGenerated desc

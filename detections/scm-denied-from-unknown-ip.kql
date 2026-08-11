@@ -1,0 +1,11 @@
+// SCM endpoint access denied from unknown IP
+
+// The SCM endpoint of both App Services is restricted to a single
+// developer IP (scm_ip_restriction, default action Deny). Any denied request to
+// .scm.azurewebsites.net therefore indicates someone probing the deployment endpoint from an unauthorized source. 
+
+let DevIp = "<DEV_IP>";
+AppServiceIPSecAuditLogs
+| where TimeGenerated > ago(1h)
+| extend ClientIp = tostring(split(CIp, ":")[0])
+| where CsHost endswith ".scm.azurewebsites.net" and not(ipv4_is_match(ClientIp, DevIp)) and Result == "Denied"
