@@ -17,3 +17,13 @@ crash.log
 # OS / IDE
 .vscode/settings.json
 Thumbs.db
+.DS_Store
+**/.terraform/
+**/.terraform.lock.hcl
+!secure-workload/.terraform.lock.hcl
+*.tfplan
+.DS_Store
+**/.terraform/
+**/.terraform.lock.hcl
+!secure-workload/.terraform.lock.hcl
+*.tfplan
