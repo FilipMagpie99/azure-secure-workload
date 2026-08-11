@@ -72,7 +72,7 @@ The design decisions are in [`adr/`](adr/)
 
 ## Detections
 
-Three KQL queries in [`detections/`](detections/), each with its hypothesis, the baseline I measured, known false positives, and what to do when it fires.
+Three KQL queries in [`detections/`](detections/), each with its description and title. I've tested all of them in my lab LA workspace.
 
 - `scm-denied-from-unknown-ip.kql` — the deployment endpoint is restricted to one address, so a denied request to it is someone probing. Baseline was zero over 30 days. Validated by triggering it from a mobile network.
 - `pgsql-auth-anomaly.kql` — 17558 connection events measured, all of them certificate-authenticated from the local platform. Any other authentication method, any non-LOG level, or any non-platform source is an anomaly by construction rather than by statistics.
