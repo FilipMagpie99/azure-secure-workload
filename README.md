@@ -84,7 +84,7 @@ The queries were calibrated against real internet traffic. The seven-day sample 
 
 Two workflows in [`.github/workflows/`](.github/workflows/):
 
-- `pr-checks.yml` runs on pull requests: format, init, validate, plan, and a Checkov scan.
+- `pr-check.yml` runs on pull requests: format, init, validate, plan, and a Checkov scan.
 - `apply.yml` runs on merge to main and applies the plan it just produced.
 
 Authentication is OIDC workload identity federation with no secret stored anywhere. GitHub issues a short-lived token describing the execution context, Entra ID verifies the signature and matches the subject claim, and Terraform exchanges it for an Azure token. Two federated credentials map to two trust levels on the same identity: pull requests can plan, only the main branch can apply.

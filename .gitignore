@@ -2,28 +2,21 @@
 *.tfstate
 *.tfstate.*
 *.tfplan
-.terraform/
-.terraform.lock.hcl.backup
 *.tfvars
 *.tfvars.json
 !example.tfvars
 crash.log
+**/.terraform/
+**/.terraform.lock.hcl
+!secure-workload/.terraform.lock.hcl
+.terraform.lock.hcl.backup
 
-# Środowisko / sekrety
+# Environment and secrets
 .env
 *.pem
 *.key
 
-# OS / IDE
-.vscode/settings.json
+# OS and IDE
+.DS_Store
 Thumbs.db
-.DS_Store
-**/.terraform/
-**/.terraform.lock.hcl
-!secure-workload/.terraform.lock.hcl
-*.tfplan
-.DS_Store
-**/.terraform/
-**/.terraform.lock.hcl
-!secure-workload/.terraform.lock.hcl
-*.tfplan
+.vscode/settings.json

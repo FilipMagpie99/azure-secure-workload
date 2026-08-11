@@ -14,3 +14,13 @@ variable "dev_ip" {
   description = "IP address of the developer machine for access to the App Services"
   type        = string
 }
+
+variable "pg_entra_admin_object_id" {
+  description = "Object ID of the PostgreSQL Entra administrator"
+  type        = string
+}
+
+variable "pg_entra_admin_upn" {
+  description = "UPN of the PostgreSQL Entra administrator"
+  type        = string
+}
